@@ -76,7 +76,7 @@ else
   #
   if [[ "$DBA_PASSWORD" != "" ]]
   then
-    echo "exit();" | isql-v "$VIRTUOSO_ADDRESS" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" || (echo "Error logging into Virtuoso with authentication on." && exit 1)
+    echo "checkpoint(); exit()" | isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" || (echo "Error logging into Virtuoso with authentication on." && exit 1)
   fi
 
   #
