@@ -72,3 +72,9 @@ DB.DBA.XML_SET_NS_DECL ('disco', 'http://rdf-vocabulary.ddialliance.org/discover
 
 DB.DBA.XML_REMOVE_NS_BY_PREFIX('rdf', 2);
 DB.DBA.XML_SET_NS_DECL ('rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', 2);
+
+DB.DBA.XML_REMOVE_NS_BY_PREFIX('chm', 2);
+DB.DBA.XML_SET_NS_DECL ('chm', 'http://www.dendro.fe.up.pt/ontology/chemistry#', 2);
+
+DB.DBA.XML_REMOVE_NS_BY_PREFIX('phys', 2);
+DB.DBA.XML_SET_NS_DECL ('phys', 'http://www.dendro.fe.up.pt/ontology/physics#', 2);

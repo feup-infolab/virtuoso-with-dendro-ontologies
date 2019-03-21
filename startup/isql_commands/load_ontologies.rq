@@ -82,3 +82,9 @@ SPARQL LOAD <https://raw.githubusercontent.com/feup-infolab/dendro-ontologies/ma
 
 SPARQL CLEAR GRAPH <http://www.w3.org/1999/02/22-rdf-syntax-ns#>;
 SPARQL LOAD <https://www.w3.org/1999/02/22-rdf-syntax-ns.rdf> INTO GRAPH <http://www.w3.org/1999/02/22-rdf-syntax-ns#>;
+
+SPARQL CLEAR GRAPH <http://www.dendro.fe.up.pt/ontology/chemistry#>;
+SPARQL LOAD <https://raw.githubusercontent.com/feup-infolab/dendro-ontologies/master/CHM/chm.owl> INTO GRAPH <http://www.dendro.fe.up.pt/ontology/chemistry#>;
+
+SPARQL CLEAR GRAPH <http://www.dendro.fe.up.pt/ontology/physics#>;
+SPARQL LOAD <https://raw.githubusercontent.com/feup-infolab/dendro-ontologies/master/PHYS/phys.owl> INTO GRAPH <http://www.dendro.fe.up.pt/ontology/physics#>;
