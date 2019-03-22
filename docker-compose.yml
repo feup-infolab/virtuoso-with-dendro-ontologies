@@ -1,0 +1,23 @@
+version: '3.2'
+
+services:
+  virtuoso:
+    container_name: virtuoso-dendro
+    image: feupinfolab/virtuoso-with-dendro-ontologies:latest
+    ports:
+      - target: 8890
+        published: 8892
+      - target: 1111
+        published: 1113
+    environment:
+      - "SPARQL_UPDATE=true"
+      - "VIRT_Parameters_CheckpointSyncMode=2"
+      - "VIRT_Parameters_PageMapCheck=1"
+      - "VIRT_Parameters_CheckpointInterval=0"
+    volumes:
+        - ./volumes/virtuoso:/data
+    networks:
+      - dendro-docker
+
+networks:
+  dendro-docker: {}

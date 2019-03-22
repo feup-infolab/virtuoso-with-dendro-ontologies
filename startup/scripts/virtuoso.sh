@@ -5,38 +5,88 @@ exit_func() {
     echo "SIGTERM detected. Shutting down virtuoso"
     if [[ "$DBA_PASSWORD" != "" ]]
     then
-      echo "checkpoint(); shutdown()" | isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" || (echo "Error logging into Virtuoso with authentication ON during shutdown." && exit 1)
+      echo "checkpoint(); shutdown()" | isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" \
+      || (echo "Error logging into Virtuoso with authentication ON during shutdown." && exit 1)
     else
-      echo "checkpoint(); shutdown()" | isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER"  || (echo "Error logging into Virtuoso with authentication OFF during shutdown." && exit 1)
+      echo "checkpoint(); shutdown()" | isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER"  \
+      || (echo "Error logging into Virtuoso with authentication OFF during shutdown." && exit 1)
     fi
 }
 
 trap exit_func SIGTERM SIGINT
 
+function server_is_online()
+{
+  local ip=$1
+  local port=$2
+  local text_to_find="$3"
+  local response
+
+  if [[ "$text_to_find" == "" ]];
+  then
+    echo "Waiting for server at $ip:$port to boot up..."
+    response=$(curl --silent --verbose "$ip:$port")
+    if [[ "$?" != "0" ]]; then
+      nc -z "$ip" "$port"
+      if [[ "$?" == "0" ]]; then
+        echo "Server IS ONLINE (checked via netcat)!"
+        return 0
+      else
+        echo "Server is not online. Response was $response"
+        return 1
+      fi
+    else
+      echo "Server IS ONLINE! Response was $response"
+      return 0
+    fi
+  else
+    echo "Waiting for server at $ip:$port to boot up and respond with something like $text_to_find"
+    response=$(curl --silent --verbose --fail "$ip:$port")
+
+    if [[ "$?" != "0" ]]; then
+      if [[ "$response" == *$text_to_find* ]];
+      then
+        echo "Server IS ONLINE! Response was $response, which includes $text_to_find"
+        return 0
+      else
+        echo "Server is not online. Response was $response"
+        return 1
+      fi
+    else
+      echo "Server IS ONLINE! Response was $response"
+      return 0
+    fi
+  fi
+}
+
 # starts containers with the volumes mounted
 function wait_for_server_to_boot_on_port()
 {
     local ip=$1
+    local port=$2
+    local text_to_find=$3
 
     if [[ $ip == "" ]]; then
       ip="127.0.0.1"
     fi
-    local port=$2
-    local attempts=0
+
+    local attempts
     local max_attempts=60
 
     echo "Waiting for server on $ip:$port to boot up..."
 
-    response=$(curl -s $ip:$port)
-    echo $response
+    attempts=0
 
-  	until curl --output /dev/null --silent --head --fail http://$ip:$port || [[ $attempts > $max_attempts ]]; do
-        attempts=$((attempts+1))
-        echo "waiting... (${attempts}/${max_attempts})"
+	  until \
+      server_is_online $ip $port "$text_to_find" || (( $attempts > $max_attempts )) \
+    ; do
+        ((attempts=attempts+1))
+        echo "Waiting... ${attempts}/${max_attempts}"
         sleep 1;
-  	done
+        response=$(curl -s $ip:$port)
+	  done
 
-    if (( $attempts == $max_attempts ));
+    if (( $attempts >= $max_attempts ));
     then
         echo "Server on $ip:$port failed to start after $max_attempts"
     elif (( $attempts < $max_attempts ));
@@ -54,12 +104,6 @@ if [[ -f "$SETUP_COMPLETED_PREVIOUSLY" || "$FORCE_ONTOLOGIES_RELOAD" != "" ]]
 then
   start_virtuoso
 else
-
-  if [[ "$DBA_PASSWORD" == "" ]];
-  then
-    DBA_PASSWORD="dba"
-  fi
-
   echo "This is the first startup of this container. Ontologies need to be loaded..."
 
   #
@@ -69,7 +113,7 @@ else
   VIRTUOSO_PID=$!
 
   wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"
-  wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_CONDUCTOR_PORT"
+  wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_CONDUCTOR_PORT" "HTTP/1.1 200 OK"
 
   #
   # Test Authentication

@@ -1,6 +1,6 @@
 FROM tenforce/virtuoso:1.3.2-virtuoso7.2.5.1
 
-RUN apt-get update; apt-get -y install curl
+RUN apt-get update; apt-get -y install curl nc
 
 ENV SCRIPTS_LOCATION="/startup"
 COPY ./startup "$SCRIPTS_LOCATION"
