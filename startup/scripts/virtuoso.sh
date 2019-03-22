@@ -76,7 +76,7 @@ else
   #
   if [[ "$DBA_PASSWORD" != "" ]]
   then
-    echo "checkpoint(); exit()" | isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" || (echo "Error logging into Virtuoso with authentication on." && exit 1)
+    echo "checkpoint();" | isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" || (echo "Error logging into Virtuoso with authentication on." && exit 1)
   fi
 
   #
@@ -86,14 +86,20 @@ else
   if [[ "$DBA_PASSWORD" != "" ]]
   then
     echo "Logging into virtuoso with credentials $VIRTUOSO_DBA_USER: $DBA_PASSWORD..."
-    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" < "$SCRIPTS_LOCATION/isql_commands/load_ontologies.rq" || ( echo "Unable to load ontologies into Virtuoso." && exit 1 )
-    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" < "$SCRIPTS_LOCATION/isql_commands/declare_namespaces.rq" || ( echo "Unable to setup namespaces" && exit 1 )
+    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" < "$SCRIPTS_LOCATION/isql_commands/load_ontologies.rq" \
+    && \
+    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" < "$SCRIPTS_LOCATION/isql_commands/declare_namespaces.rq" \
+    && \
+    touch $SETUP_COMPLETED_PREVIOUSLY \
+      || ( echo "Unable to setup namespaces" && exit 1 )
   else
-    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" < "$SCRIPTS_LOCATION/isql_commands/load_ontologies.rq" || ( echo "Unable to load ontologies into Virtuoso." && exit 1 )
-    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" < "$SCRIPTS_LOCATION/isql_commands/declare_namespaces.rq" || ( echo "Unable to setup namespaces" && exit 1 )
+    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" < "$SCRIPTS_LOCATION/isql_commands/load_ontologies.rq" \
+    && \
+    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" < "$SCRIPTS_LOCATION/isql_commands/declare_namespaces.rq" \
+    && \
+    touch $SETUP_COMPLETED_PREVIOUSLY \
+      || ( echo "Unable to setup namespaces" && exit 1 )
   fi
-
-  touch "$SETUP_COMPLETED_PREVIOUSLY"
 
   if [[ -f $SETUP_COMPLETED_PREVIOUSLY ]]; then
     echo "Installed base ontologies in virtuoso."
