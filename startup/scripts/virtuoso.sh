@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Set constants
+VIRTUOSO_HOST=$(hostname -i | awk '{print $1}')
+VIRTUOSO_ISQL_PORT="1111"
+VIRTUOSO_CONDUCTOR_PORT="8890"
+
 # register exit handler to shut down virtuoso cleanly on Ctrl+C
 exit_func() {
     echo "SIGTERM detected. Shutting down virtuoso"
