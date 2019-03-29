@@ -102,11 +102,13 @@ function wait_for_server_to_boot_on_port()
 
 function start_virtuoso()
 {
-  source "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT"
+	wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" &
+	source "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT"
 }
 
 if [[ -f "$SETUP_COMPLETED_PREVIOUSLY" || "$FORCE_ONTOLOGIES_RELOAD" != "" ]]
 then
+  echo "This container has already started before. Simply starting up virtuoso."
   start_virtuoso
 else
   echo "This is the first startup of this container. Ontologies need to be loaded..."
@@ -167,8 +169,10 @@ else
   #
   # kill virtuoso and wait for its shutdown
   #
-  echo "Shutting down virtuoso..."
-  while kill $VIRTUOSO_PID; do
+  echo "Shutting down virtuoso..." 
+  isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" 'EXEC=checkpoint; shutdown;'
+  
+  while kill -0 $VIRTUOSO_PID; do
     echo "Virtuoso shutting down..."
     sleep 1
   done
