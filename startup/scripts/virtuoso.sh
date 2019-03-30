@@ -142,7 +142,7 @@ function perform_initialization()
       isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" < "$SCRIPTS_LOCATION/isql_commands/declare_namespaces.rq" \
         || ( echo "Unable to setup namespaces" && exit 1 )
     fi
-	
+
     #
     # Enable job control for this shell
     #
@@ -152,11 +152,10 @@ function perform_initialization()
     #
     # kill virtuoso and wait for its shutdown
     #
-    echo "Shutting down virtuoso..." 
-    sync
-    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" 'EXEC=checkpoint; shutdown;'
-  
-    while kill -0 $VIRTUOSO_PID; do
+    echo "Shutting down virtuoso..."
+    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" "EXEC=checkpoint; shutdown;"
+
+    until ! server_is_online "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"; do
       echo "Virtuoso shutting down..."
       sleep 1
     done
@@ -168,20 +167,16 @@ then
   start_virtuoso
 else
   echo "This is the first startup of this container. Ontologies need to be loaded..."
+  perform_initialization
 
-  #init virtuoso 3 times, because one is not enough... ontologies are lost on first restart??? Thanks.
-  perform_initialization
-  perform_initialization
-  perform_initialization
-  
   touch "$SETUP_COMPLETED_PREVIOUSLY"
-  
+
   if [[ -f $SETUP_COMPLETED_PREVIOUSLY ]]; then
-	  echo "Virtuoso iniialized successfully. Starting up again for normal operation..."
+	  echo "Virtuoso initialized successfully. Starting up again for normal operation..."
   else
       echo "Unable to touch file $SETUP_COMPLETED_PREVIOUSLY after loading ontologies"
       exit 1
   fi
-  
+
   start_virtuoso
 fi
