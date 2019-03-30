@@ -18,6 +18,8 @@ exit_func() {
     fi
 }
 
+trap exit_func SIGTERM SIGINT
+
 function server_is_online()
 {
   local ip=$1
@@ -108,7 +110,6 @@ function start_virtuoso()
 function source_virtuoso()
 {
   echo "Sourcing virtuoso to start server..."
-  trap exit_func SIGTERM SIGINT
   /bin/bash -c "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT"
 }
 

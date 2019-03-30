@@ -1,11 +1,13 @@
 FROM openlink/virtuoso-opensource-7:7.2.6-r1-g0a3336c
 
-RUN apt-get update; apt-get -y install curl netcat
+RUN apt-get update; apt-get -y -qq install curl netcat git
 
 ARG DBA_PASSWORD="mysecret"
 
 ENV SCRIPTS_LOCATION="/startup"
 COPY ./startup "$SCRIPTS_LOCATION"
+
+RUN git clone https://github.com/feup-infolab/dendro-ontologies.git /usr/share/proj/dendro-ontologies
 
 # Environment variables
 
