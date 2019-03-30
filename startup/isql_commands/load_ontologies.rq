@@ -1,3 +1,5 @@
+log_enable(3);
+
 SPARQL LOAD <http://www.w3.org/ns/auth/cert#> INTO graph <http://www.w3.org/ns/auth/cert#>;
 
 SPARQL CLEAR GRAPH <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>;
@@ -88,3 +90,5 @@ SPARQL LOAD <https://raw.githubusercontent.com/feup-infolab/dendro-ontologies/ma
 
 SPARQL CLEAR GRAPH <http://www.dendro.fe.up.pt/ontology/physics#>;
 SPARQL LOAD <https://raw.githubusercontent.com/feup-infolab/dendro-ontologies/master/PHYS/phys.owl> INTO GRAPH <http://www.dendro.fe.up.pt/ontology/physics#>;
+
+checkpoint();

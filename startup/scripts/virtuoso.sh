@@ -159,7 +159,6 @@ else
     exit 1
   fi
 
-
   #
   # Enable job control for this shell
   #
@@ -170,6 +169,7 @@ else
   # kill virtuoso and wait for its shutdown
   #
   echo "Shutting down virtuoso..." 
+  sync
   isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" 'EXEC=checkpoint; shutdown;'
   
   while kill -0 $VIRTUOSO_PID; do
