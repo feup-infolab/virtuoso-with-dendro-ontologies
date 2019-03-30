@@ -106,6 +106,62 @@ function start_virtuoso()
 	source "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT"
 }
 
+function perform_initialization()
+{
+    #
+    # Wait for virtuoso server to boot up
+    #
+    /bin/bash "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT" &
+    VIRTUOSO_PID=$!
+
+    wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"
+    wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_CONDUCTOR_PORT" "HTTP/1.1 200 OK"
+
+    #
+    # Test Authentication
+    #
+    if [[ "$DBA_PASSWORD" != "" ]]
+    then
+      echo "EXEC=status();" | isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" || (echo "Error logging into Virtuoso with authentication on." && exit 1)
+    fi
+
+    #
+    # Load ontologies and set up namespaces
+    #
+
+    if [[ "$DBA_PASSWORD" != "" ]]
+    then
+      echo "Logging into virtuoso with credentials $VIRTUOSO_DBA_USER: $DBA_PASSWORD..."
+      isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" < "$SCRIPTS_LOCATION/isql_commands/load_ontologies.rq" \
+      && \
+      isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" < "$SCRIPTS_LOCATION/isql_commands/declare_namespaces.rq" \
+        || ( echo "Unable to setup namespaces" && exit 1 )
+    else
+      isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" < "$SCRIPTS_LOCATION/isql_commands/load_ontologies.rq" \
+      && \
+      isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" < "$SCRIPTS_LOCATION/isql_commands/declare_namespaces.rq" \
+        || ( echo "Unable to setup namespaces" && exit 1 )
+    fi
+	
+    #
+    # Enable job control for this shell
+    #
+
+    set -m
+
+    #
+    # kill virtuoso and wait for its shutdown
+    #
+    echo "Shutting down virtuoso..." 
+    sync
+    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" 'EXEC=checkpoint; shutdown;'
+  
+    while kill -0 $VIRTUOSO_PID; do
+      echo "Virtuoso shutting down..."
+      sleep 1
+    done
+}
+
 if [[ -f "$SETUP_COMPLETED_PREVIOUSLY" || "$FORCE_ONTOLOGIES_RELOAD" != "" ]]
 then
   echo "This container has already started before. Simply starting up virtuoso."
@@ -113,72 +169,19 @@ then
 else
   echo "This is the first startup of this container. Ontologies need to be loaded..."
 
-  #
-  # Wait for virtuoso server to boot up
-  #
-  /bin/bash "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT" &
-  VIRTUOSO_PID=$!
-
-  wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"
-  wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_CONDUCTOR_PORT" "HTTP/1.1 200 OK"
-
-  #
-  # Test Authentication
-  #
-  if [[ "$DBA_PASSWORD" != "" ]]
-  then
-    echo "checkpoint();" | isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" || (echo "Error logging into Virtuoso with authentication on." && exit 1)
-  fi
-
-  #
-  # Load ontologies and set up namespaces
-  #
-
-  if [[ "$DBA_PASSWORD" != "" ]]
-  then
-    echo "Logging into virtuoso with credentials $VIRTUOSO_DBA_USER: $DBA_PASSWORD..."
-    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" < "$SCRIPTS_LOCATION/isql_commands/load_ontologies.rq" \
-    && \
-    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" < "$SCRIPTS_LOCATION/isql_commands/declare_namespaces.rq" \
-    && \
-    touch $SETUP_COMPLETED_PREVIOUSLY \
-      || ( echo "Unable to setup namespaces" && exit 1 )
-  else
-    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" < "$SCRIPTS_LOCATION/isql_commands/load_ontologies.rq" \
-    && \
-    isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" < "$SCRIPTS_LOCATION/isql_commands/declare_namespaces.rq" \
-    && \
-    touch $SETUP_COMPLETED_PREVIOUSLY \
-      || ( echo "Unable to setup namespaces" && exit 1 )
-  fi
-
-  if [[ -f $SETUP_COMPLETED_PREVIOUSLY ]]; then
-    echo "Installed base ontologies in virtuoso."
-  else
-    echo "Unable to touch file $SETUP_COMPLETED_PREVIOUSLY after loading ontologies"
-    exit 1
-  fi
-
-  #
-  # Enable job control for this shell
-  #
-
-  set -m
-
-  #
-  # kill virtuoso and wait for its shutdown
-  #
-  echo "Shutting down virtuoso..." 
-  sync
-  isql-v "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" 'EXEC=checkpoint; shutdown;'
+  #init virtuoso 3 times, because one is not enough... ontologies are lost on first restart??? Thanks.
+  perform_initialization
+  perform_initialization
+  perform_initialization
   
-  while kill -0 $VIRTUOSO_PID; do
-    echo "Virtuoso shutting down..."
-    sleep 1
-  done
-
-  echo "Virtuoso shut down successful. Starting up again for normal operation..."
-
-  #start_virtuoso_again
+  touch "$SETUP_COMPLETED_PREVIOUSLY"
+  
+  if [[ -f $SETUP_COMPLETED_PREVIOUSLY ]]; then
+	  echo "Virtuoso iniialized successfully. Starting up again for normal operation..."
+  else
+      echo "Unable to touch file $SETUP_COMPLETED_PREVIOUSLY after loading ontologies"
+      exit 1
+  fi
+  
   start_virtuoso
 fi
