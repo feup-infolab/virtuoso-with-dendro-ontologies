@@ -4,6 +4,8 @@
 VIRTUOSO_HOST=$(hostname -i | awk '{print $1}')
 VIRTUOSO_ISQL_PORT="1111"
 VIRTUOSO_CONDUCTOR_PORT="8890"
+VIRT_Parameters_CheckpointSync="2"
+VIRT_Parameters_CheckpointInterval="-1"
 
 # register exit handler to shut down virtuoso cleanly on Ctrl+C
 exit_func() {
@@ -105,6 +107,20 @@ function start_virtuoso()
   wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"
 
   return $VIRTUOSO_PID
+}
+
+function set_log_level_to_3()
+{
+    echo "Setting log level to 3 for safer data saving in virtuoso"
+	
+    if [[ "$DBA_PASSWORD" != "" ]]
+    then
+		isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" "exec=log_enable(3);"\
+      || (echo "Error setting log level to 3 in virtuoso with password set." && exit 1)
+    else
+		isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" "exec=log_enable(3);"  \
+      || (echo "Error setting log level to 3 in virtuoso without password set." && exit 1)
+    fi
 }
 
 function source_virtuoso()
