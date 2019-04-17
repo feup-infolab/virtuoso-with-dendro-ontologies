@@ -7,15 +7,19 @@ VIRTUOSO_CONDUCTOR_PORT="8890"
 VIRT_Parameters_CheckpointSync="2"
 VIRT_Parameters_CheckpointInterval="-1"
 
+executing=true
+
 # register exit handler to shut down virtuoso cleanly on Ctrl+C
-exit_func() {
+exit_func() 
+{
+  executing=false
     echo "SIGTERM detected. Shutting down virtuoso"
     if [[ "$DBA_PASSWORD" != "" ]]
     then
-      echo "checkpoint() shutdown();" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" \
+      echo "checkpoint(); shutdown()" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" \
       || (echo "Error logging into Virtuoso with authentication ON during shutdown." && exit 1)
     else
-      echo "checkpoint() shutdown();" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER"  \
+      echo "checkpoint(); shutdown()" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER"  \
       || (echo "Error logging into Virtuoso with authentication OFF during shutdown." && exit 1)
     fi
 }
@@ -112,7 +116,7 @@ function start_virtuoso()
 function set_log_level_to_3()
 {
     echo "Setting log level to 3 for safer data saving in virtuoso"
-
+	
     if [[ "$DBA_PASSWORD" != "" ]]
     then
 		isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" "exec=log_enable(3);"\
@@ -125,8 +129,13 @@ function set_log_level_to_3()
 
 function source_virtuoso()
 {
-  echo "Sourcing virtuoso to start server..."
-  /bin/bash -c "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT"
+  echo "Sourcing virtuoso to start server...  2"
+  /bin/bash -c "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT" &
+  echo "Sourcing finished"
+  while $executing
+  do
+    sleep 1
+  done
 }
 
 function perform_initialization()
