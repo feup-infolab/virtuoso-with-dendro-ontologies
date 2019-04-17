@@ -12,10 +12,10 @@ exit_func() {
     echo "SIGTERM detected. Shutting down virtuoso"
     if [[ "$DBA_PASSWORD" != "" ]]
     then
-      echo "checkpoint(); shutdown()" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" \
+      echo "checkpoint() shutdown();" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" \
       || (echo "Error logging into Virtuoso with authentication ON during shutdown." && exit 1)
     else
-      echo "checkpoint(); shutdown()" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER"  \
+      echo "checkpoint() shutdown();" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER"  \
       || (echo "Error logging into Virtuoso with authentication OFF during shutdown." && exit 1)
     fi
 }
@@ -112,7 +112,7 @@ function start_virtuoso()
 function set_log_level_to_3()
 {
     echo "Setting log level to 3 for safer data saving in virtuoso"
-	
+
     if [[ "$DBA_PASSWORD" != "" ]]
     then
 		isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" "exec=log_enable(3);"\

@@ -22,6 +22,9 @@ DB.DBA.RDF_LOAD_RDFXML (file_to_string_output ('/usr/share/proj/dendro-ontologie
 SPARQL CLEAR GRAPH <http://dendro.fe.up.pt/ontology/achem/>;
 DB.DBA.RDF_LOAD_RDFXML (file_to_string_output ('/usr/share/proj/dendro-ontologies/ACHEM/achem.owl'), '', 'http://dendro.fe.up.pt/ontology/achem/');
 
+SPARQL CLEAR GRAPH <http://www.dendro.fe.up.pt/ontology/mibbiup#>;
+DB.DBA.RDF_LOAD_RDFXML (file_to_string_output ('/usr/share/proj/dendro-ontologies/MIBBIUP/MibbiUP.owl'), '', 'http://www.dendro.fe.up.pt/ontology/mibbiup#');
+
 SPARQL CLEAR GRAPH <http://dendro.fe.up.pt/ontology/BIODIV/0.1#>;
 SPARQL LOAD <https://raw.githubusercontent.com/feup-infolab-rdm/dendro-ontologies/master/BIODIV/BIODIV_17Jun_1557.owl> INTO <http://dendro.fe.up.pt/ontology/BIODIV/0.1#>;
 

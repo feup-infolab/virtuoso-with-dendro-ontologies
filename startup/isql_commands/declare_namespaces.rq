@@ -80,3 +80,6 @@ DB.DBA.XML_SET_NS_DECL ('chm', 'http://www.dendro.fe.up.pt/ontology/chemistry#',
 
 DB.DBA.XML_REMOVE_NS_BY_PREFIX('phys', 2);
 DB.DBA.XML_SET_NS_DECL ('phys', 'http://www.dendro.fe.up.pt/ontology/physics#', 2);
+
+DB.DBA.XML_REMOVE_NS_BY_PREFIX('mibbiup', 2);
+DB.DBA.XML_SET_NS_DECL ('mibbiup', 'http://www.dendro.fe.up.pt/ontology/mibbiup#', 2);
