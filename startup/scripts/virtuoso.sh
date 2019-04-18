@@ -6,25 +6,34 @@ VIRTUOSO_ISQL_PORT="1111"
 VIRTUOSO_CONDUCTOR_PORT="8890"
 VIRT_Parameters_CheckpointSync="2"
 VIRT_Parameters_CheckpointInterval="-1"
+RECEIVED_TERMINATION_SIGNAL=false
 
-executing=true
 
-# register exit handler to shut down virtuoso cleanly on Ctrl+C
-exit_func() 
+run_isql_command()
 {
-  executing=false
-    echo "SIGTERM detected. Shutting down virtuoso"
-    if [[ "$DBA_PASSWORD" != "" ]]
-    then
-      echo "checkpoint(); shutdown()" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" \
-      || (echo "Error logging into Virtuoso with authentication ON during shutdown." && exit 1)
-    else
-      echo "checkpoint(); shutdown()" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER"  \
-      || (echo "Error logging into Virtuoso with authentication OFF during shutdown." && exit 1)
-    fi
+  ISQL_COMMAND="$1"
+  if [[ "$DBA_PASSWORD" != "" ]]
+  then
+    isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" "$ISQL_COMMAND"
+  else
+    isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" "$ISQL_COMMAND"
+  fi
 }
 
-trap exit_func SIGTERM SIGINT
+# register exit handler to shut down virtuoso cleanly on Ctrl+C
+exithandler()
+{
+    echo "SIGTERM or SIGINT detected. Shutting down virtuoso...!"
+    RECEIVED_TERMINATION_SIGNAL=true
+    run_isql_command "EXEC=checkpoint; shutdown;" || (echo "Error checkpointing and shutting down Virtuoso" && exit 1)
+}
+
+trap exithandler SIGTERM
+echo "Registered handler for SIGTERM"
+trap exithandler SIGINT
+echo "Registered handler for SIGINT"
+trap exithandler SIGQUIT
+echo "Registered handler for SIGQUIT"
 
 function server_is_online()
 {
@@ -106,7 +115,7 @@ function wait_for_server_to_boot_on_port()
 
 function start_virtuoso()
 {
-	$($ORIGINAL_VIRTUOSO_STARTUP_SCRIPT) &
+	/bin/bash -c "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT" &
   VIRTUOSO_PID=$!
   wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"
 
@@ -116,26 +125,34 @@ function start_virtuoso()
 function set_log_level_to_3()
 {
     echo "Setting log level to 3 for safer data saving in virtuoso"
-	
-    if [[ "$DBA_PASSWORD" != "" ]]
-    then
-		isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" "exec=log_enable(3);"\
-      || (echo "Error setting log level to 3 in virtuoso with password set." && exit 1)
-    else
-		isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" "exec=log_enable(3);"  \
-      || (echo "Error setting log level to 3 in virtuoso without password set." && exit 1)
-    fi
+    run_isql_command "exec=log_enable(3);" || (echo "Error setting log level to 3 in virtuoso." && exit 1)
 }
 
 function source_virtuoso()
 {
+  local VIRTUOSO_PID
   echo "Sourcing virtuoso to start server...  2"
   /bin/bash -c "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT" &
-  echo "Sourcing finished"
-  while $executing
+  VIRTUOSO_PID="$!"
+  #wait "$VIRTUOSO_PID"
+  echo "Dendro running.... (PID $VIRTUOSO_PID)"
+  ATTEMPTS=40
+  while kill -0 "$VIRTUOSO_PID"
   do
-    sleep 1
+    if [[ "$RECEIVED_TERMINATION_SIGNAL" = true ]]
+    then
+      if [[ $ATTEMPTS -eq 0 ]]; then
+        echo "Virtuoso shutdown timed out! Forcing shutdown!"
+        kill -9 "$VIRTUOSO_PID" & wait
+        exit 1
+      else
+        ATTEMPTS=$((ATTEMPTS - 1))
+        echo "Virtuoso shutdown in progress... $ATTEMPTS attempts remaining..."
+      fi
+    fi
+    sleep 0.5
   done
+  echo "Dendro was stopped."
 }
 
 function perform_initialization()
@@ -148,14 +165,6 @@ function perform_initialization()
 
     wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"
     wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_CONDUCTOR_PORT" "HTTP/1.1 200 OK"
-
-    #
-    # Test Authentication
-    #
-    if [[ "$DBA_PASSWORD" != "" ]]
-    then
-      echo "EXEC=exit();" | isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" || (echo "Error logging into Virtuoso with authentication on." && exit 1)
-    fi
 
     #
     # Load ontologies and set up namespaces
@@ -179,13 +188,7 @@ function perform_initialization()
     # kill virtuoso and wait for its shutdown
     #
     echo "Shutting down virtuoso..."
-
-    if [[ "$DBA_PASSWORD" != "" ]]
-    then
-      isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" -P "$DBA_PASSWORD" "EXEC=checkpoint; shutdown;"
-    else
-      isql "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT" -U "$VIRTUOSO_DBA_USER" "EXEC=checkpoint; shutdown;"
-    fi
+    run_isql_command "EXEC=checkpoint; shutdown;"
 
     until ! server_is_online "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"; do
       echo "Virtuoso shutting down..."
