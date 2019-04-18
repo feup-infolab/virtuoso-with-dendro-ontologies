@@ -4,8 +4,6 @@
 VIRTUOSO_HOST=$(hostname -i | awk '{print $1}')
 VIRTUOSO_ISQL_PORT="1111"
 VIRTUOSO_CONDUCTOR_PORT="8890"
-VIRT_Parameters_CheckpointSync="2"
-VIRT_Parameters_CheckpointInterval="-1"
 
 # register exit handler to shut down virtuoso cleanly on Ctrl+C
 exit_func() {
@@ -21,6 +19,22 @@ exit_func() {
 }
 
 trap exit_func SIGTERM SIGINT
+
+ip --oneline address show
+
+function block_port_except_for_loopback()
+{
+  local port=$1
+  echo "Blocking port $port for all non-loopback access"
+  iptables -A INPUT -p tcp -i eth0 --dport "$port" -j DROP
+}
+
+function unblock_port()
+{
+  local port=$1
+  echo "Unblocking port $port"
+  iptables -D INPUT -p tcp -i eth0 --dport "$port" -j DROP
+}
 
 function server_is_online()
 {
@@ -190,7 +204,16 @@ then
   source_virtuoso
 else
   echo "This is the first startup of this container. Ontologies need to be loaded..."
+
+  # do not enable connections from outside until the server is ready
+  iptables -t nat -L
+  block_port_except_for_loopback "$VIRTUOSO_CONDUCTOR_PORT"
+  block_port_except_for_loopback "$VIRTUOSO_ISQL_PORT"
+  iptables -t nat -L
   perform_initialization
+  unblock_port "$VIRTUOSO_CONDUCTOR_PORT"
+  unblock_port "$VIRTUOSO_ISQL_PORT"
+  iptables -t nat -L
 
   touch "$SETUP_COMPLETED_PREVIOUSLY"
 

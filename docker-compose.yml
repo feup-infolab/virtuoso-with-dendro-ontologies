@@ -5,6 +5,7 @@ services:
     container_name: virtuoso-dendro
     image: feupinfolab/virtuoso-with-dendro-ontologies:latest
     tty: true
+    privileged: true
     build:
       context: .
       dockerfile: Dockerfile

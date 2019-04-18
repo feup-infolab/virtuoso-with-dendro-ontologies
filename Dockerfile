@@ -1,7 +1,7 @@
 FROM openlink/virtuoso-opensource-7:7.2.6-r1-g0a3336c
 
-RUN apt-get update; apt-get -y -qq install curl netcat git
-
+#iproute2
+RUN apt-get update; apt-get -y -qq install curl netcat git iptables
 ARG DBA_PASSWORD="mysecret"
 
 ENV SCRIPTS_LOCATION="/startup"
