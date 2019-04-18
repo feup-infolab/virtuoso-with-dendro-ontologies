@@ -1,6 +1,8 @@
 FROM openlink/virtuoso-opensource-7:7.2.6-r1-g0a3336c
 
 #iproute2
+SHELL ["/bin/bash", "-c"]
+
 RUN apt-get update; apt-get -y -qq install curl netcat git iptables
 ARG DBA_PASSWORD="mysecret"
 
@@ -16,4 +18,4 @@ ENV VIRTUOSO_DBA_USER "dba"
 ENV DBA_PASSWORD "$DBA_PASSWORD"
 ENV SETUP_COMPLETED_PREVIOUSLY "/database/virtuoso_already_loaded_ontologies.dat"
 
-CMD ["/bin/bash", "/startup/scripts/virtuoso.sh"]
+ENTRYPOINT ["/bin/bash", "-c", "/startup/scripts/virtuoso.sh"]

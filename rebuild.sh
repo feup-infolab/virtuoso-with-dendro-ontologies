@@ -7,3 +7,4 @@ docker rm $(docker ps -a -q -f ancestor=feupinfolab/virtuoso-with-dendro-ontolog
 rm -rf volumes/
 docker-compose build
 docker-compose up
+# docker run feupinfolab/virtuoso-with-dendro-ontologies:latest
