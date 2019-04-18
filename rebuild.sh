@@ -5,5 +5,5 @@ docker stop $(docker ps -a -q -f ancestor=feupinfolab/virtuoso-with-dendro-ontol
 # docker run -p 8890:8890 feupinfolab/virtuoso-with-dendro-ontologies
 rm -rf volumes/
 docker-compose build
-# docker-compose up
-docker run feupinfolab/virtuoso-with-dendro-ontologies:latest
+docker-compose up
+# docker run feupinfolab/virtuoso-with-dendro-ontologies:latest
