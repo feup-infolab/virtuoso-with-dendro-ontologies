@@ -1,10 +1,11 @@
-version: '3.2'
+version: '3.7'
 
 services:
   virtuoso:
     container_name: virtuoso-dendro
     image: feupinfolab/virtuoso-with-dendro-ontologies:latest
-    tty: true
+    # tty: true
+    # init: true
     build:
       context: .
       dockerfile: Dockerfile
