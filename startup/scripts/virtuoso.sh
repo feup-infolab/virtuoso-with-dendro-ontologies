@@ -5,7 +5,7 @@ VIRTUOSO_HOST=$(hostname -i | awk '{print $1}')
 VIRTUOSO_ISQL_PORT="1111"
 VIRTUOSO_CONDUCTOR_PORT="8890"
 RECEIVED_TERMINATION_SIGNAL=false
-
+IPTABLES_FILE=/root/initial.iptables.rules
 
 run_isql_command()
 {
@@ -35,18 +35,29 @@ echo "Registered handler for SIGQUIT"
 
 ip --oneline address show
 
-function block_port_except_for_loopback()
+function block_ports_except_for_loopback()
 {
-  local port=$1
-  echo "Blocking port $port for all non-loopback access"
-  iptables -A INPUT -p tcp -i eth0 --dport "$port" -j DROP
+  echo "Blocking port $VIRTUOSO_ISQL_PORT and $VIRTUOSO_CONDUCTOR_PORT for all non-loopback access"
+  iptables-save > "$IPTABLES_FILE"
+
+  # https://medium.com/@ebuschini/iptables-and-docker-95e2496f0b45
+  # https://gist.github.com/tehmoon/b1c3ae5e9a67d66186361d4728bed799#file-iptables-reload-sh
+
+  # First we create a new chain before the PREROUTING one, redirecting all packets to it
+  #iptables -t nat -N DOCKER-BLOCK || true
+  #iptables -t nat -I PREROUTING -m addrtype -j DOCKER-BLOCK
+
+  #iptables -A DOCKER-BLOCK -p tcp -i lo --dport "$VIRTUOSO_ISQL_PORT" -j ACCEPT
+  #iptables -A DOCKER-BLOCK -p tcp -i lo --dport "$VIRTUOSO_CONDUCTOR_PORT" -j ACCEPT
+
+  iptables -A INPUT -i eth0 -p tcp --destination-port $VIRTUOSO_ISQL_PORT -j DROP
+  iptables -A INPUT -i eth0 -p tcp --destination-port $VIRTUOSO_CONDUCTOR_PORT -j DROP
 }
 
-function unblock_port()
+function restore_network_access()
 {
-  local port=$1
-  echo "Unblocking port $port"
-  iptables -D INPUT -p tcp -i eth0 --dport "$port" -j DROP
+  echo "Restoring network access..."
+  iptables-restore < "$IPTABLES_FILE"
 }
 
 function server_is_online()
@@ -219,12 +230,10 @@ else
 
   # do not enable connections from outside until the server is ready
   iptables -t nat -L
-  block_port_except_for_loopback "$VIRTUOSO_CONDUCTOR_PORT"
-  block_port_except_for_loopback "$VIRTUOSO_ISQL_PORT"
+  block_ports_except_for_loopback
   iptables -t nat -L
   perform_initialization
-  unblock_port "$VIRTUOSO_CONDUCTOR_PORT"
-  unblock_port "$VIRTUOSO_ISQL_PORT"
+  restore_network_access
   iptables -t nat -L
 
   touch "$SETUP_COMPLETED_PREVIOUSLY"
