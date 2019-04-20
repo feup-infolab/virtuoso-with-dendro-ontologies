@@ -160,7 +160,12 @@ function source_virtuoso()
   /bin/bash -c "$ORIGINAL_VIRTUOSO_STARTUP_SCRIPT" &
   VIRTUOSO_PID="$!"
   #wait "$VIRTUOSO_PID"
+
+  wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"
+  wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_CONDUCTOR_PORT" "HTTP/1.1 200 OK"
+  restore_network_access
   echo "Dendro running.... (PID $VIRTUOSO_PID)"
+
   ATTEMPTS=40
   while kill -0 "$VIRTUOSO_PID"
   do
@@ -233,7 +238,7 @@ else
   block_ports_except_for_loopback
   iptables -t nat -L
   perform_initialization
-  restore_network_access
+
   iptables -t nat -L
 
   touch "$SETUP_COMPLETED_PREVIOUSLY"
