@@ -83,3 +83,6 @@ DB.DBA.XML_SET_NS_DECL ('phys', 'http://www.dendro.fe.up.pt/ontology/physics#', 
 
 DB.DBA.XML_REMOVE_NS_BY_PREFIX('mibbiup', 2);
 DB.DBA.XML_SET_NS_DECL ('mibbiup', 'http://www.dendro.fe.up.pt/ontology/mibbiup#', 2);
+
+DB.DBA.XML_REMOVE_NS_BY_PREFIX('imgdata', 2);
+DB.DBA.XML_SET_NS_DECL ('imgdata', 'http://www.semanticweb.org/migue/ontologies/2020/4/imgdata#', 2);

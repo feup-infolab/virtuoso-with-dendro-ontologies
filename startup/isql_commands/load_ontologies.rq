@@ -90,3 +90,6 @@ SPARQL LOAD <https://raw.githubusercontent.com/feup-infolab/dendro-ontologies/ma
 
 SPARQL CLEAR GRAPH <http://www.dendro.fe.up.pt/ontology/physics#>;
 SPARQL LOAD <https://raw.githubusercontent.com/feup-infolab/dendro-ontologies/master/PHYS/phys.owl> INTO GRAPH <http://www.dendro.fe.up.pt/ontology/physics#>;
+
+SPARQL CLEAR GRAPH <http://www.semanticweb.org/migue/ontologies/2020/4/imgdata>;
+SPARQL LOAD <https://raw.githubusercontent.com/feup-infolab/dendro-ontologies/master/IMGDATA/imgdata.owl> INTO GRAPH <http://www.semanticweb.org/migue/ontologies/2020/4/imgdata>;

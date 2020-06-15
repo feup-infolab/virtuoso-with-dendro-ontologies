@@ -4,7 +4,10 @@ docker stop $(docker ps -a -q -f ancestor=feupinfolab/virtuoso-with-dendro-ontol
 docker rm $(docker ps -a -q -f ancestor=feupinfolab/virtuoso-with-dendro-ontologies)
 # docker rmi --force feupinfolab/virtuoso-with-dendro-ontologies
 # docker run -p 8890:8890 feupinfolab/virtuoso-with-dendro-ontologies
-rm -rf volumes/
-docker-compose build
-docker-compose up
+# rm -rf volumes/
+# docker-compose build
+# docker-compose up
 # docker run feupinfolab/virtuoso-with-dendro-ontologies:latest
+
+docker build -t feupinfolab/virtuoso-with-dendro-ontologies:latest .
+docker push feupinfolab/virtuoso-with-dendro-ontologies:latest

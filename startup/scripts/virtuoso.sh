@@ -164,7 +164,7 @@ function source_virtuoso()
   wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_ISQL_PORT"
   wait_for_server_to_boot_on_port "$VIRTUOSO_HOST" "$VIRTUOSO_CONDUCTOR_PORT" "HTTP/1.1 200 OK"
   restore_network_access
-  echo "Dendro running.... (PID $VIRTUOSO_PID)"
+  echo "Virtuoso running.... (PID $VIRTUOSO_PID)"
 
   ATTEMPTS=40
   while kill -0 "$VIRTUOSO_PID"
@@ -182,7 +182,7 @@ function source_virtuoso()
     fi
     sleep 0.5
   done
-  echo "Dendro was stopped."
+  echo "Virtuoso was stopped."
 }
 
 function perform_initialization()
